@@ -16,9 +16,9 @@ Puppet::Type.type(:sqldb).provide(:postgres) do
     )
 
     if status == 0
-      true
+      return true
     else
-      false
+      return false
     end
   end
 
@@ -27,7 +27,7 @@ Puppet::Type.type(:sqldb).provide(:postgres) do
       info "Database @resource[:name] exists"
       return nil
     else
-      cmd = [command(:createdb)] << @resource[:name] << @resource[:owner]
+      cmd = [command(:createdb)] << @resource[:name] << "-O" << @resource[:owner]
       Puppet::Util::SUIDManager.run_and_capture(
         cmd, resource[:runas].to_s
       )
@@ -45,4 +45,22 @@ Puppet::Type.type(:sqldb).provide(:postgres) do
       )
     end
   end
+
+  def owner
+    if exists?
+      cmd = [command(:psql)] << "-A" << "-t" << "-c" << "SELECT pg_catalog.pg_get_userbyid(d.datdba) FROM pg_catalog.pg_database d where d.datname = \'#{@resource[:name]}\'"
+      output, status = Puppet::Util::SUIDManager.run_and_capture(
+        cmd, resource[:runas].to_s
+      )
+      return output.chomp
+    end
+  end
+
+  def owner=(should)
+      cmd = [command(:psql)] << "-c" << "ALTER DATABASE #{@resource[:name]} OWNER TO #{should}"
+      Puppet::Util::SUIDManager.run_and_capture(
+        cmd, resource[:runas].to_s
+      )
+  end
+
 end

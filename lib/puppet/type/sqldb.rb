@@ -16,7 +16,7 @@ module Puppet
       end
     end
 
-    newparam(:owner) do
+    newproperty(:owner) do
       desc "Which database user owns the database."
       defaultto :postgres
     end
